@@ -8,7 +8,7 @@ const {
     getTaskById,
     updateTask,
     deleteTask
-} = require("../controllers/taskController");
+} = require("../controllers/TaskController");
 
 router.use(protect);
 
