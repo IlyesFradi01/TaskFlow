@@ -41,5 +41,7 @@ const startServer = async () => {
         console.log(`Server running on port ${PORT}`);
     });
 };
+const projectRoutes = require("./routes/projectRoutes");
+app.use("/api/projects", projectRoutes);
 
 startServer();
