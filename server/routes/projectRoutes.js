@@ -1,6 +1,4 @@
-
-const express = require("express");
-const router = express.Router();
+const router = require("express").Router();
 
 const protect = require("../middleware/protect");
 
@@ -12,12 +10,11 @@ const {
     deleteProject
 } = require("../controllers/projectController");
 
-// All project routes require authentication.
 router.use(protect);
 
 router.route("/")
-    .post(createProject)
-    .get(getProjects);
+    .get(getProjects)
+    .post(createProject);
 
 router.route("/:id")
     .get(getProjectById)

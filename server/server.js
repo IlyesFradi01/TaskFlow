@@ -5,43 +5,62 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const connectDB = require("./config/db");
+
 const authRoutes = require("./routes/authRoutes");
+const projectRoutes = require("./routes/projectRoutes");
+const taskRoutes = require("./routes/taskRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
+const publicRoutes = require("./routes/publicRoutes");
+
+const notFound = require("./middleware/notFound");
+const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
-// Middlewares
+
+// MIDDLEWARES
 app.use(cors({
-    origin: "http://localhost:5173"
+    origin: process.env.CLIENT_URL || "http://localhost:5173"
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
-// Route principale
+
+// HOME ROUTE
 app.get("/", (req, res) => {
     res.status(200).json({
         message: "Welcome to TaskFlow API"
     });
 });
+
+
+// API ROUTES
 app.use("/api/auth", authRoutes);
-const protect = require("./middleware/protect");
 
-app.get("/api/auth/me", protect, (req, res) => {
-    res.status(200).json({
-        user: req.user
-    });
-});
+app.use("/api/projects", projectRoutes);
 
-// Démarrage du serveur
+app.use("/api/tasks", taskRoutes);
+
+app.use("/api/dashboard", dashboardRoutes);
+
+app.use("/api/public", publicRoutes);
+
+
+// ERROR HANDLING
+app.use(notFound);
+
+app.use(errorHandler);
+
+
+// START SERVER
 const startServer = async () => {
     await connectDB();
 
-    const PORT = process.env.PORT || 5050;
+    const PORT = process.env.PORT || 5000;
 
     app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
     });
 };
-const projectRoutes = require("./routes/projectRoutes");
-app.use("/api/projects", projectRoutes);
 
 startServer();

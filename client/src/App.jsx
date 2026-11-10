@@ -1,55 +1,149 @@
-import { useSelector, useDispatch } from 'react-redux';
-import { Link, Route, Routes } from 'react-router-dom';
-import { decrement, increment, reset } from './features/counter/counterSlice';
+import { useEffect } from "react";
 
-function HomePage() {
-  const count = useSelector((state) => state.counter.value);
-  const dispatch = useDispatch();
+import {
+    BrowserRouter,
+    Navigate,
+    Route,
+    Routes
+} from "react-router-dom";
 
-  return (
-    <main className="container py-5">
-      <section className="card shadow-sm border-0 rounded-4 p-4">
-        <p className="text-uppercase text-primary fw-semibold mb-2">React + Redux</p>
-        <h1 className="display-5 fw-bold mb-3">MERN app starter</h1>
-        <p className="lead text-secondary mb-4">
-          This frontend is ready for your dashboard, authentication flow, and API integrations.
-        </p>
+import {
+    useDispatch,
+    useSelector
+} from "react-redux";
 
-        <div className="d-flex gap-3 align-items-center mb-4">
-          <button className="btn btn-outline-danger" onClick={() => dispatch(decrement())}>-</button>
-          <span className="fs-2 fw-bold">{count}</span>
-          <button className="btn btn-outline-success" onClick={() => dispatch(increment())}>+</button>
-          <button className="btn btn-outline-secondary" onClick={() => dispatch(reset())}>Reset</button>
-        </div>
+import { loadMe } from "./features/authSlice";
 
-        <nav className="d-flex gap-3">
-          <Link to="/" className="btn btn-primary">Home</Link>
-          <Link to="/about" className="btn btn-outline-primary">About</Link>
-        </nav>
-      </section>
-    </main>
-  );
+import ProtectedRoute from "./components/ProtectedRoute";
+
+import Layout from "./components/Layout";
+
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import DashboardPage from "./pages/DashboardPage";
+import ProjectsPage from "./pages/ProjectsPage";
+import ProjectDetailPage from "./pages/ProjectDetailPage";
+import TasksPage from "./pages/TasksPage";
+import PublicProjectsPage from "./pages/PublicProjectsPage";
+import PublicProjectDetailPage from "./pages/PublicProjectDetailPage";
+
+
+function AppRoutes() {
+
+    const dispatch = useDispatch();
+
+    const {
+        token,
+        initialized
+    } = useSelector((state) => state.auth);
+
+
+    // Validate the saved token when the application starts
+    useEffect(() => {
+
+        if (token) {
+            dispatch(loadMe());
+        }
+
+    }, [dispatch]);
+
+
+    // Wait until the saved session has been checked
+    if (!initialized) {
+
+        return (
+            <div className="page-center">
+                Loading TaskFlow...
+            </div>
+        );
+    }
+
+
+    return (
+
+        <Routes>
+
+            {/* Authentication */}
+
+            <Route
+                path="/login"
+                element={<LoginPage />}
+            />
+
+            <Route
+                path="/register"
+                element={<RegisterPage />}
+            />
+
+
+            {/* Public pages */}
+
+            <Route
+                path="/public"
+                element={<PublicProjectsPage />}
+            />
+
+            <Route
+                path="/public/:id"
+                element={<PublicProjectDetailPage />}
+            />
+
+
+            {/* Protected pages */}
+
+            <Route element={<ProtectedRoute />}>
+
+                <Route element={<Layout />}>
+
+                    <Route
+                        path="/dashboard"
+                        element={<DashboardPage />}
+                    />
+
+                    <Route
+                        path="/projects"
+                        element={<ProjectsPage />}
+                    />
+
+                    <Route
+                        path="/projects/:id"
+                        element={<ProjectDetailPage />}
+                    />
+
+                    <Route
+                        path="/tasks"
+                        element={<TasksPage />}
+                    />
+
+                </Route>
+
+            </Route>
+
+
+            {/* Default route */}
+
+            <Route
+                path="*"
+                element={
+                    <Navigate
+                        to={token ? "/dashboard" : "/login"}
+                        replace
+                    />
+                }
+            />
+
+        </Routes>
+    );
 }
 
-function AboutPage() {
-  return (
-    <main className="container py-5">
-      <div className="card shadow-sm border-0 rounded-4 p-4">
-        <h2 className="mb-3">About this project</h2>
-        <p className="mb-0 text-secondary">
-          This app includes React, Redux Toolkit, React Router, Bootstrap, Axios, and icon support,
-          so you can immediately start building your MERN stack features.
-        </p>
-      </div>
-    </main>
-  );
-}
 
 export default function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/about" element={<AboutPage />} />
-    </Routes>
-  );
+
+    return (
+
+        <BrowserRouter>
+            <AppRoutes />
+        </BrowserRouter>
+
+    );
 }
