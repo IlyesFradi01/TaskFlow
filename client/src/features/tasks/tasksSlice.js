@@ -33,7 +33,7 @@ export const createTask = createAsyncThunk(
 
     async (payload, thunkAPI) => {
         try {
-            const { data } = await api.post("/tasks", payload);
+            const { data } = await api.post("/api/tasks", payload);
 
             return data.task;
 
@@ -53,7 +53,7 @@ export const updateTask = createAsyncThunk(
     async ({ id, changes }, thunkAPI) => {
         try {
             const { data } = await api.put(
-                `/tasks/${id}`,
+                `/api/tasks/${id}`,
                 changes
             );
 

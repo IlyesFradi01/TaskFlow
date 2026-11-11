@@ -31,7 +31,7 @@ export const createProject = createAsyncThunk(
 
     async (payload, thunkAPI) => {
         try {
-            const { data } = await api.post("/projects", payload);
+            const { data } = await api.post("/api/projects", payload);
 
             return data.project;
 
@@ -51,7 +51,7 @@ export const updateProject = createAsyncThunk(
     async ({ id, changes }, thunkAPI) => {
         try {
             const { data } = await api.put(
-                `/projects/${id}`,
+                `/api/projects/${id}`,
                 changes
             );
 
