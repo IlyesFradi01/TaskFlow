@@ -11,13 +11,14 @@ const savedUser = localStorage.getItem("taskflow_user");
 
 
 // LOGIN
+
+// LOGIN
 export const login = createAsyncThunk(
     "auth/login",
-
     async (credentials, thunkAPI) => {
         try {
             const { data } = await api.post(
-                "/auth/login",
+                "/api/auth/login",
                 credentials
             );
 
@@ -37,6 +38,7 @@ export const login = createAsyncThunk(
         }
     }
 );
+
 
 
 // REGISTER
