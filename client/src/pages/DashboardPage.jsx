@@ -19,6 +19,8 @@ export default function DashboardPage() {
 
     const [error, setError] = useState("");
 
+    const isAdmin = user?.role === "admin";
+
     useEffect(() => {
 
        api.get("/api/dashboard/stats")
@@ -36,21 +38,25 @@ export default function DashboardPage() {
 
     }, []);
 
-    const cards = stats ? [
-
-        ["Projects", stats.totalProjects, "Total projects"],
-
-        ["Tasks", stats.totalTasks, "All tasks"],
-
-        ["In progress", stats.inProgressTasks, "Tasks underway"],
-
-        ["Completed", stats.completedTasks, "Finished tasks"],
-
-        ["High priority", stats.highPriorityTasks, "Open high-priority tasks"],
-
-        ["Overdue", stats.overdueTasks, "Past due date"]
-
-    ] : [];
+    const cards = stats ? (
+        isAdmin
+            ? [
+                ["Users", stats.totalUsers || 0, "Total accounts"],
+                ["Projects", stats.totalProjects || 0, "All projects"],
+                ["Tasks", stats.totalTasks || 0, "All tasks"],
+                ["In progress", stats.inProgressTasks || 0, "Tasks underway"],
+                ["Completed", stats.completedTasks || 0, "Finished tasks"],
+                ["High priority", stats.highPriorityTasks || 0, "Open high-priority tasks"]
+            ]
+            : [
+                ["Projects", stats.totalProjects, "Total projects"],
+                ["Tasks", stats.totalTasks, "All tasks"],
+                ["In progress", stats.inProgressTasks, "Tasks underway"],
+                ["Completed", stats.completedTasks, "Finished tasks"],
+                ["High priority", stats.highPriorityTasks, "Open high-priority tasks"],
+                ["Overdue", stats.overdueTasks, "Past due date"]
+            ]
+    ) : [];
 
     return (
 
@@ -122,7 +128,7 @@ export default function DashboardPage() {
 
                 <div className="content-card mt-4">
 
-                    <h5>Task progress</h5>
+                    <h5>{isAdmin ? "Workspace progress" : "Task progress"}</h5>
 
                     <div
                         className="progress mt-3"
@@ -144,11 +150,46 @@ export default function DashboardPage() {
                     </div>
 
                     <small className="text-muted mt-2 d-block">
-                        {stats.completedTasks} of {stats.totalTasks} tasks completed
+                        {stats.completedTasks || 0} of {stats.totalTasks || 0} tasks completed
                     </small>
 
                 </div>
 
+            )}
+
+            {isAdmin && stats?.users && stats.users.length > 0 && (
+                <div className="content-card mt-4">
+                    <h5>Team overview</h5>
+
+                    <div className="table-responsive mt-3">
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Projects</th>
+                                    <th>Tasks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {stats.users.map((member) => (
+                                    <tr key={member.id}>
+                                        <td>{member.name}</td>
+                                        <td>{member.email}</td>
+                                        <td>
+                                            <span className="badge bg-primary-subtle text-primary">
+                                                {member.role}
+                                            </span>
+                                        </td>
+                                        <td>{member.projectCount}</td>
+                                        <td>{member.taskCount}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             )}
 
         </div>

@@ -1,19 +1,20 @@
 const Project = require("../models/Project");
 const Task = require("../models/Task");
+const User = require("../models/user");
 
 const getDashboardStats = async (req, res) => {
     try {
-        const projects = await Project.find({
-            owner: req.user._id
-        }).select("_id status");
+        const isAdmin = req.user.role === "admin";
 
-        const projectIds = projects.map(
-            (project) => project._id
-        );
+        const projectQuery = isAdmin ? {} : { owner: req.user._id };
+        const projects = await Project.find(projectQuery)
+            .select("_id status owner")
+            .populate("owner", "name email role");
 
+        const projectIds = projects.map((project) => project._id);
         const tasks = await Task.find({
             project: { $in: projectIds }
-        }).select("status priority dueDate");
+        }).select("status priority dueDate project");
 
         const now = new Date();
 
@@ -53,6 +54,28 @@ const getDashboardStats = async (req, res) => {
                     t.status !== "Done"
             ).length
         };
+
+        if (isAdmin) {
+            const allUsers = await User.find().select("_id name email role");
+            const userSummaries = await Promise.all(allUsers.map(async (user) => {
+                const userProjects = await Project.find({ owner: user._id }).select("_id");
+                const userProjectIds = userProjects.map((project) => project._id);
+                const userTasks = await Task.find({ project: { $in: userProjectIds } }).countDocuments();
+
+                return {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role || "user",
+                    projectCount: userProjects.length,
+                    taskCount: userTasks
+                };
+            }));
+
+            stats.totalUsers = allUsers.length;
+            stats.adminUsers = allUsers.filter((user) => user.role === "admin").length;
+            stats.users = userSummaries;
+        }
 
         return res.status(200).json({ stats });
 

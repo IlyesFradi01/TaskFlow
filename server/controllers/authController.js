@@ -17,7 +17,8 @@ const getMe = async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
-                email: user.email
+                email: user.email,
+                role: user.role || "user"
             }
         });
     } catch (error) {
@@ -58,9 +59,13 @@ const registerUser = async (req, res) => {
             });
         }
 
+        const normalizedEmail = email.trim().toLowerCase();
+        const adminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+        const requestedRole = normalizedEmail === adminEmail ? "admin" : "user";
+
         // Check if user already exists
         const existingUser = await User.findOne({
-            email: email.trim().toLowerCase()
+            email: normalizedEmail
         });
 
         if (existingUser) {
@@ -76,8 +81,9 @@ const registerUser = async (req, res) => {
         // Create user
         const user = await User.create({
             name,
-            email: email.trim().toLowerCase(),
-            password: hashedPassword
+            email: normalizedEmail,
+            password: hashedPassword,
+            role: requestedRole
         });
 
         // Generate token
@@ -89,7 +95,8 @@ const registerUser = async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
-                email: user.email
+                email: user.email,
+                role: user.role || "user"
             }
         });
 
@@ -153,7 +160,8 @@ const loginUser = async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
-                email: user.email
+                email: user.email,
+                role: user.role || "user"
             }
         });
 

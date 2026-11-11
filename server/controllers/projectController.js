@@ -3,13 +3,36 @@ const mongoose = require("mongoose");
 
 const Project = require("../models/Project");
 const Task = require("../models/Task");
+const User = require("../models/user");
+
+const isAdmin = (req) => req.user && req.user.role === "admin";
+
+const validateOwner = async (req, ownerId) => {
+    if (!isAdmin(req)) {
+        return req.user._id;
+    }
+
+    const finalOwnerId = ownerId || req.user._id;
+
+    if (!mongoose.isValidObjectId(finalOwnerId)) {
+        throw new Error("Invalid user ID");
+    }
+
+    const owner = await User.findById(finalOwnerId);
+
+    if (!owner) {
+        throw new Error("User not found");
+    }
+
+    return owner._id;
+};
 
 // @desc    Create a project
 // @route   POST /api/projects
 // @access  Private
 const createProject = async (req, res) => {
     try {
-        const { title, description, category, status } = req.body;
+        const { title, description, category, status, owner: ownerId } = req.body;
 
         if (!title || !title.trim()) {
             return res.status(400).json({
@@ -17,12 +40,14 @@ const createProject = async (req, res) => {
             });
         }
 
+        const finalOwnerId = await validateOwner(req, ownerId);
+
         const project = await Project.create({
             title: title.trim(),
             description: description || "",
             category: category || "General",
             status: status || "Active",
-            owner: req.user._id
+            owner: finalOwnerId
         });
 
         res.status(201).json({
@@ -32,6 +57,18 @@ const createProject = async (req, res) => {
 
     } catch (error) {
         console.error("Create project error:", error.message);
+
+        if (error.message === "Invalid user ID") {
+            return res.status(400).json({
+                message: "Invalid user ID"
+            });
+        }
+
+        if (error.message === "User not found") {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
 
         if (error.name === "ValidationError") {
             return res.status(400).json({
@@ -51,9 +88,9 @@ const createProject = async (req, res) => {
 // @access  Private
 const getProjects = async (req, res) => {
     try {
-        const projects = await Project.find({
-            owner: req.user._id
-        })
+        const filter = isAdmin(req) ? {} : { owner: req.user._id };
+
+        const projects = await Project.find(filter)
             .populate("owner", "name email")
             .sort({ createdAt: -1 });
 
@@ -85,10 +122,11 @@ const getProjectById = async (req, res) => {
             });
         }
 
-        const project = await Project.findOne({
-            _id: id,
-            owner: req.user._id
-        }).populate("owner", "name email");
+        const query = isAdmin(req)
+            ? { _id: id }
+            : { _id: id, owner: req.user._id };
+
+        const project = await Project.findOne(query).populate("owner", "name email");
 
         if (!project) {
             return res.status(404).json({
@@ -96,8 +134,6 @@ const getProjectById = async (req, res) => {
             });
         }
 
-        // Retrieve tasks belonging to this project.
-        // populate() retrieves the referenced project information.
         const tasks = await Task.find({
             project: project._id
         })
@@ -132,10 +168,11 @@ const updateProject = async (req, res) => {
             });
         }
 
-        const project = await Project.findOne({
-            _id: id,
-            owner: req.user._id
-        });
+        const project = await Project.findOne(
+            isAdmin(req)
+                ? { _id: id }
+                : { _id: id, owner: req.user._id }
+        );
 
         if (!project) {
             return res.status(404).json({
@@ -143,7 +180,24 @@ const updateProject = async (req, res) => {
             });
         }
 
-        // Only allow these fields to be updated.
+        if (req.body.owner && isAdmin(req)) {
+            if (!mongoose.isValidObjectId(req.body.owner)) {
+                return res.status(400).json({
+                    message: "Invalid user ID"
+                });
+            }
+
+            const owner = await User.findById(req.body.owner);
+
+            if (!owner) {
+                return res.status(404).json({
+                    message: "User not found"
+                });
+            }
+
+            project.owner = owner._id;
+        }
+
         const allowedFields = [
             "title",
             "description",
@@ -201,10 +255,11 @@ const deleteProject = async (req, res) => {
             });
         }
 
-        const project = await Project.findOne({
-            _id: id,
-            owner: req.user._id
-        });
+        const project = await Project.findOne(
+            isAdmin(req)
+                ? { _id: id }
+                : { _id: id, owner: req.user._id }
+        );
 
         if (!project) {
             return res.status(404).json({
@@ -212,7 +267,6 @@ const deleteProject = async (req, res) => {
             });
         }
 
-        // Remove associated tasks to avoid orphan records.
         await Task.deleteMany({
             project: project._id
         });

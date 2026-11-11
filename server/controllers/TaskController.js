@@ -4,12 +4,20 @@ const Task = require("../models/Task");
 const Project = require("../models/Project");
 
 const validId = (id) => mongoose.isValidObjectId(id);
+const isAdmin = (req) => req.user && req.user.role === "admin";
 
-const findOwnedProject = (projectId, userId) => {
-    return Project.findOne({
-        _id: projectId,
-        owner: userId
-    });
+const findAccessibleProject = async (req, projectId) => {
+    const project = await Project.findById(projectId).populate("owner", "_id");
+
+    if (!project) {
+        return null;
+    }
+
+    if (isAdmin(req) || String(project.owner._id) === String(req.user._id)) {
+        return project;
+    }
+
+    return null;
 };
 
 
@@ -41,10 +49,7 @@ const createTask = async (req, res) => {
             });
         }
 
-        const project = await findOwnedProject(
-            projectId,
-            req.user._id
-        );
+        const project = await findAccessibleProject(req, projectId);
 
         if (!project) {
             return res.status(404).json({
@@ -87,15 +92,16 @@ const createTask = async (req, res) => {
 // GET ALL USER TASKS
 const getTasks = async (req, res) => {
     try {
-        const projects = await Project.find({
-            owner: req.user._id
-        }).select("_id");
+        let filter = {};
 
-        const projectIds = projects.map((project) => project._id);
+        if (!isAdmin(req)) {
+            const projects = await Project.find({
+                owner: req.user._id
+            }).select("_id");
 
-        const filter = {
-            project: { $in: projectIds }
-        };
+            const projectIds = projects.map((project) => project._id);
+            filter = { project: { $in: projectIds } };
+        }
 
         if (req.query.projectId) {
             if (!validId(req.query.projectId)) {
@@ -104,14 +110,17 @@ const getTasks = async (req, res) => {
                 });
             }
 
-            const ownsProject = projectIds.some(
-                (id) => String(id) === req.query.projectId
-            );
-
-            if (!ownsProject) {
-                return res.status(404).json({
-                    message: "Project not found"
+            if (!isAdmin(req)) {
+                const ownsProject = await Project.exists({
+                    _id: req.query.projectId,
+                    owner: req.user._id
                 });
+
+                if (!ownsProject) {
+                    return res.status(404).json({
+                        message: "Project not found"
+                    });
+                }
             }
 
             filter.project = req.query.projectId;
@@ -150,11 +159,15 @@ const getTaskById = async (req, res) => {
         const task = await Task.findById(id)
             .populate("project", "title owner");
 
-        if (
-            !task ||
-            !task.project ||
-            String(task.project.owner) !== String(req.user._id)
-        ) {
+        if (!task || !task.project) {
+            return res.status(404).json({
+                message: "Task not found"
+            });
+        }
+
+        const isAllowed = isAdmin(req) || String(task.project.owner) === String(req.user._id);
+
+        if (!isAllowed) {
             return res.status(404).json({
                 message: "Task not found"
             });
@@ -186,11 +199,15 @@ const updateTask = async (req, res) => {
         const task = await Task.findById(id)
             .populate("project", "owner");
 
-        if (
-            !task ||
-            !task.project ||
-            String(task.project.owner) !== String(req.user._id)
-        ) {
+        if (!task || !task.project) {
+            return res.status(404).json({
+                message: "Task not found"
+            });
+        }
+
+        const isAllowed = isAdmin(req) || String(task.project.owner) === String(req.user._id);
+
+        if (!isAllowed) {
             return res.status(404).json({
                 message: "Task not found"
             });
@@ -266,11 +283,15 @@ const deleteTask = async (req, res) => {
         const task = await Task.findById(id)
             .populate("project", "owner");
 
-        if (
-            !task ||
-            !task.project ||
-            String(task.project.owner) !== String(req.user._id)
-        ) {
+        if (!task || !task.project) {
+            return res.status(404).json({
+                message: "Task not found"
+            });
+        }
+
+        const isAllowed = isAdmin(req) || String(task.project.owner) === String(req.user._id);
+
+        if (!isAllowed) {
             return res.status(404).json({
                 message: "Task not found"
             });
