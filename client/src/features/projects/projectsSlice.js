@@ -12,7 +12,7 @@ export const fetchProjects = createAsyncThunk(
 
     async (_, thunkAPI) => {
         try {
-            const { data } = await api.get("/projects");
+            const { data } = await api.get("/api/projects");
 
             return data.projects;
 

@@ -21,7 +21,7 @@ export default function DashboardPage() {
 
     useEffect(() => {
 
-        api.get("/dashboard/stats")
+       api.get("/api/dashboard/stats")
 
             .then(({ data }) => {
                 setStats(data.stats);

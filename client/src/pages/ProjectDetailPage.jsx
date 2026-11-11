@@ -42,7 +42,7 @@ export default function ProjectDetailPage() {
 
     useEffect(() => {
 
-        api.get(`/projects/${id}`)
+        api.get(`/api/projects/${id}`)
 
             .then(({ data }) => {
                 setProject(data.project);
@@ -81,7 +81,7 @@ export default function ProjectDetailPage() {
 
         if (result.meta.requestStatus === "fulfilled") {
 
-            const refreshed = await api.get(`/projects/${id}`);
+            const refreshed = await api.get(`/api/projects/${id}`);
 
             setTasks(refreshed.data.tasks);
 

@@ -12,7 +12,7 @@ export const fetchTasks = createAsyncThunk(
 
     async (projectId, thunkAPI) => {
         try {
-            const { data } = await api.get("/tasks", {
+            const { data } = await api.get("/api/tasks", {
                 params: projectId ? { projectId } : {}
             });
 

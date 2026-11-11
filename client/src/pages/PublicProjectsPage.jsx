@@ -15,7 +15,7 @@ export default function PublicProjectsPage() {
 
     useEffect(() => {
 
-        api.get("/public/projects")
+        api.get("/api/public/projects")
 
             .then(({ data }) => {
                 setProjects(data.projects);

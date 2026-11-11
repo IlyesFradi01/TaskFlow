@@ -20,7 +20,7 @@ export default function PublicProjectDetailPage() {
 
     useEffect(() => {
 
-        api.get(`/public/projects/${id}`)
+        api.get(`/api/public/projects/${id}`)
 
             .then((response) => {
                 setData(response.data);
